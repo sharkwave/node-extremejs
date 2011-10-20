@@ -27,16 +27,17 @@ xp.entity('favorite', {
 
 xp.stream('find-friend', 'user', ['currentUser']);
 
-xp.stream('following', 'friend', ['currentUser', 'from']);
+xp.stream('following', 'friend', ['currentUser', 'from'], ['to']);
 
-xp.stream('follower', 'friend', ['currentUser', 'to']);
+xp.stream('follower', 'friend', ['currentUser', 'to'], ['from']);
 
 xp.object('follow', 'friend', ['from', 'to']);
 
-xp.stream('favorites', 'favorite', ['currentUser', 'user']);
+xp.stream('favorites', 'favorite', ['currentUser', 'user'], ['spot']);
 
 xp.object('save', 'favorite', ['user', 'spot']);
 
 xp.connect('localhost', 27017, 'test', function(err) {
-  if(!err) console.log('connected');
+  if(err) console.log('error%j', err);
+  xp.test();
 });

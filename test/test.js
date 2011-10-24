@@ -25,6 +25,10 @@ xp.entity('favorite', {
   spot:'spot'
 });
 
+xp.const('home', [], {
+  signup: "/user",
+  login: "/login"
+});
 xp.stream('find-friend', 'user', ['currentUser']);
 
 xp.stream('following', 'friend', ['currentUser', 'from'], ['to']);

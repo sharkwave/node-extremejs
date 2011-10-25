@@ -17,15 +17,19 @@ xp.entity('spot', {
 
 xp.entity('friend', {
   from:'user',
-  to:'user'
+  to:'user',
+  hrefFrom: ['u', ['currentUser', 'from']],
+  hrefTo: ['u', ['currentUser', 'to']]
 });
 
 xp.entity('favorite', {
   user:'user',
-  spot:'spot'
+  spot:'spot',
+  hrefUser: ['u', ['currentUser', 'user']],
+  hrefSpot: ['s', ['currentUser', 'spot']]
 });
 
-xp.resource('home', [], {
+xp.resource('start', [], {
   signup: ['signup', []],
   login: ['login', []]
 });
@@ -33,6 +37,10 @@ xp.resource('home', [], {
 xp.stream('signup', 'user', []);
 
 xp.object('user-by-name', 'user', ['username']);
+
+xp.object('u', 'user', ['currentUser', '_id']);
+
+xp.object('s', 'spot', ['currentUser', '_id']);
 
 xp.resource('login', ['a','b'], function(req, callback) {
   console.log(req);
@@ -51,10 +59,16 @@ xp.stream('favorites', 'favorite', ['currentUser', 'user'], ['spot']);
 
 xp.object('save', 'favorite', ['user', 'spot']);
 
+xp.resource('home', ['currentUser'], {
+  me: ['u', ['currentUser', 'currentUser']],
+  findFriend: ['find-friend', ['currentUser']],
+  
+});
+
 xp.connect('localhost', 27017, 'test', function(err) {
   if(err) console.log('error%j', err);
   //xp.test();
-  xp.post("/signup", {username:'liudian', password:'12345'}, function(err,obj){
+  xp.get("/u/133391bf69ba27cc/133391bf69ba27cc", function(err,obj){
     console.log(err);
     console.log(obj);
   });

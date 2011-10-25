@@ -68,7 +68,15 @@ xp.resource('home', ['currentUser'], {
 xp.connect('localhost', 27017, 'test', function(err) {
   if(err) console.log('error%j', err);
   //xp.test();
-  xp.get("/u/133391bf69ba27cc/133391bf69ba27cc", function(err,obj){
+  /*
+  for(var i=0; i<100; i++) {
+    xp.post('/signup', {username:'user' + i, password:'12345' + i}, 
+      function(code, doc){
+        //console.log(code);
+      });
+  }
+  */
+  xp.get("/find-friend/133391bf69ba27cc?first=", function(err,obj){
     console.log(err);
     console.log(obj);
   });

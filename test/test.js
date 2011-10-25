@@ -34,7 +34,9 @@ xp.stream('signup', 'user', []);
 
 xp.object('user-by-name', 'user', ['username']);
 
-xp.resource('login', [], function(req, callback) {
+xp.resource('login', ['a','b'], function(req, callback) {
+  console.log(req);
+  callback(200, {ok:1});
 });
 
 xp.stream('find-friend', 'user', ['currentUser']);
@@ -52,11 +54,8 @@ xp.object('save', 'favorite', ['user', 'spot']);
 xp.connect('localhost', 27017, 'test', function(err) {
   if(err) console.log('error%j', err);
   //xp.test();
-setTimeout(function() {
-  console.log('here');
   xp.post("/signup", {username:'liudian', password:'12345'}, function(err,obj){
     console.log(err);
     console.log(obj);
   });
-}, 1000);
 });

@@ -1,5 +1,6 @@
 'use strict';
 var xp = require('extremejs');
+var http = require('http');
 
 xp.entity('user', {
   username:'string',
@@ -49,7 +50,7 @@ xp.resource('login', [], function(req, callback) {
   xp.get(xp.url('user-by-name',[userinfo.username]), function(code, obj) {
     if(code==200) {
       if(userinfo.password==obj.password) {
-        xp.get(xp.url('home', [obj._id]), function(code, home) {
+        xp.get(xp.url('home', [obj._id], req.url), function(code, home) {
           callback(200, home);
         });
       }
@@ -111,11 +112,18 @@ xp.connect('localhost', 27017, 'test', function(err) {
     console.log(code);
   });
   */
+  /*
   xp.post('/login', {username:'user1', password:'12345'}, 
       function(code, home) {
         console.log(code);
         console.log(home);
       });
+      */
+  process.on('uncaughtException', function (err) {
+    console.log('Caught exception: ' + err);
+  });
+  http.createServer(xp.httpfunc).listen(8080);
+
 });
 function cb(code, entity) {
   console.log('code: ' + code);

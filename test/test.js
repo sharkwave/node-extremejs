@@ -83,17 +83,18 @@ xp.resource('home', ['currentUser'], {
   
 });
 
-xp.connect('localhost', 27017, 'test', function(err) {
+xp.connect('localhost', 27017, 'favespot2_test', function(err) {
   if(err) console.log('error%j', err);
+
   //xp.test();
-  /*
+/*
   for(var i=1; i<=100; i++) {
     xp.post('/spot-import', {name:'spot' + i}, 
       function(code, doc){
         //console.log(code);
       });
   }
-  */
+*/
   /*
   xp.get("/discover/133391bf69ba27cc?first=", function(err,obj){
     console.log(err);
@@ -123,6 +124,7 @@ xp.connect('localhost', 27017, 'test', function(err) {
     console.log('Caught exception: ' + err);
   });
   http.createServer(xp.httpfunc).listen(8080);
+  console.log('listen on 8080');
 
 });
 function cb(code, entity) {

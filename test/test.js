@@ -126,7 +126,7 @@ xp.resource('home', ['currentUser'], {
 
 xp.stream('tl', 'timeline', ['currentUser', 'user']);
 
-xp.connect('localhost', 27017, 'test', function(err) {
+xp.connect('localhost', 27017, 'test2', function(err) {
   if(err) console.log('error%j', err);
   //xp.test();
   /*

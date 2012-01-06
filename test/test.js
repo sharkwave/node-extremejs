@@ -15,7 +15,7 @@ xp.entity('user', {
 xp.entity('spot', {
   name:'string',
   save:['save', ['currentUser', '_id']],
-  comments: ['spot-cmts', ['currentUser', '_id']]
+  comments: ['spot-cmts', ['currentUser', 'currentUser', '_id']]
 });
 
 xp.entity('friend', {
@@ -50,7 +50,7 @@ xp.entity('comment', {
   message:'string',
   hrefUser: ['u', ['currentUser', 'user']],
   hrefSpot: ['s', ['currentUser', 'spot']],
-  replys: ['cmt-replys', ['currentUser', 'spot']]
+  replys: ['cmt-replys', ['currentUser', 'currentUser', '_id']]
 });
 
 xp.entity('reply', {
@@ -64,7 +64,8 @@ xp.entity('reply', {
 xp.resource('start', [], {
   signup: ['signup', []],
   login: ['login', []],
-  discover: ['discover-nologin', []]
+  discover: ['discover-nologin', []],
+  publicTimeline: ['pub-tl', []]
 });
 
 xp.stream('signup', 'user', []);
@@ -79,9 +80,9 @@ xp.object('s', 'spot', ['currentUser', '_id']);
 
 xp.object('cmt', 'comment', ['currentUser', '_id']);
 
-xp.stream('spot-cmts', 'comment', ['currentUser', 'spot']);
+xp.stream('spot-cmts', 'comment', ['currentUser', 'user', 'spot']);
 
-xp.stream('cmt-replys', 'reply', ['currentUser', 'comment']);
+xp.stream('cmt-replys', 'reply', ['currentUser', 'user', 'comment']);
 
 xp.resource('login', [], function(req, callback) {
   var userinfo = req.entity;
@@ -89,7 +90,7 @@ xp.resource('login', [], function(req, callback) {
     if(code==200) {
       if(userinfo.password==obj.password) {
         xp.get(xp.url('home', [obj._id], req.url), function(code, home) {
-          callback(200, home);
+          callback(200, home, {currentUser:obj._id, _token:Math.random()});
         });
       }
       else
@@ -124,9 +125,11 @@ xp.resource('home', ['currentUser'], {
   
 });
 
-xp.stream('tl', 'timeline', ['currentUser', 'user']);
+xp.stream('tl', 'comment', ['currentUser', 'user']);
+xp.stream('pub-tl', 'comment', []);
 
-xp.connect('localhost', 27017, 'test2', function(err) {
+xp.setKey('sh0ckwave-favesp0t');
+xp.connect('localhost', 27017, 'test', function(err) {
   if(err) console.log('error%j', err);
   //xp.test();
   /*

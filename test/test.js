@@ -5,6 +5,7 @@ var http = require('http');
 xp.entity('user', {
   username:'string',
   password:'string',
+  timeline: ['tl', ['currentUser', 'currentUser']],
   favorites:['favorites', ['currentUser', '_id']],
   following:['following', ['currentUser', '_id']],
   follower:['follower', ['currentUser', '_id']],
@@ -13,7 +14,8 @@ xp.entity('user', {
 
 xp.entity('spot', {
   name:'string',
-  save:['save', ['currentUser', '_id']]
+  save:['save', ['currentUser', '_id']],
+  comments: ['spot-cmts', ['currentUser', '_id']]
 });
 
 xp.entity('friend', {
@@ -30,9 +32,39 @@ xp.entity('favorite', {
   hrefSpot: ['s', ['currentUser', 'spot']]
 });
 
+xp.entity('timeline', {
+  user:'user',
+  spot:'spot',
+  type:'string',
+  hrefUser: ['u', ['currentUser', 'user']],
+  hrefSpot: ['s', ['currentUser', 'spot']]
+});
+
+xp.entity('notification', {
+  type:'string'
+});
+
+xp.entity('comment', {
+  user:'user',
+  spot:'spot',
+  message:'string',
+  hrefUser: ['u', ['currentUser', 'user']],
+  hrefSpot: ['s', ['currentUser', 'spot']],
+  replys: ['cmt-replys', ['currentUser', 'spot']]
+});
+
+xp.entity('reply', {
+  user:'user',
+  comment:'comment',
+  message:'string',
+  hrefComment:['cmt', ['currentUser', 'comment']],
+  hrefUser: ['u', ['currentUser', 'user']]
+});
+
 xp.resource('start', [], {
   signup: ['signup', []],
-  login: ['login', []]
+  login: ['login', []],
+  discover: ['discover-nologin', []]
 });
 
 xp.stream('signup', 'user', []);
@@ -44,6 +76,12 @@ xp.object('user-by-name', 'user', ['username']);
 xp.object('u', 'user', ['currentUser', '_id']);
 
 xp.object('s', 'spot', ['currentUser', '_id']);
+
+xp.object('cmt', 'comment', ['currentUser', '_id']);
+
+xp.stream('spot-cmts', 'comment', ['currentUser', 'spot']);
+
+xp.stream('cmt-replys', 'reply', ['currentUser', 'comment']);
 
 xp.resource('login', [], function(req, callback) {
   var userinfo = req.entity;
@@ -65,23 +103,28 @@ xp.resource('login', [], function(req, callback) {
 xp.stream('find-friend', 'user', ['currentUser']);
 
 xp.stream('discover', 'spot', ['currentUser']);
+xp.stream('discover-nologin', 'spot', ['currentUser']);
 
-xp.stream('following', 'friend', ['currentUser', 'from'], ['to']);
+xp.stream('following', 'friend', ['currentUser', 'from']);
 
-xp.stream('follower', 'friend', ['currentUser', 'to'], ['from']);
+xp.stream('follower', 'friend', ['currentUser', 'to']);
 
 xp.object('follow', 'friend', ['from', 'to']);
 
-xp.stream('favorites', 'favorite', ['currentUser', 'user'], ['spot']);
+xp.stream('favorites', 'favorite', ['currentUser', 'user']);
 
 xp.object('save', 'favorite', ['user', 'spot']);
 
 xp.resource('home', ['currentUser'], {
   me: ['u', ['currentUser', 'currentUser']],
   discover: ['discover', ['currentUser']],
+  timeline: ['tl', ['currentUser', 'currentUser']],
+  notification: ['notify', ['currentUser', 'currentUser']],
   findFriend: ['find-friend', ['currentUser']]
   
 });
+
+xp.stream('tl', 'timeline', ['currentUser', 'user']);
 
 xp.connect('localhost', 27017, 'favespot2_test', function(err) {
   if(err) console.log('error%j', err);
@@ -121,7 +164,7 @@ xp.connect('localhost', 27017, 'favespot2_test', function(err) {
       });
       */
   process.on('uncaughtException', function (err) {
-    console.log('Caught exception: ' + err);
+    console.log('Caught exception: ' + err.stack);
   });
   http.createServer(xp.httpfunc).listen(8080);
   console.log('listen on 8080');

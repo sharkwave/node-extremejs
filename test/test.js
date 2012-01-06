@@ -128,12 +128,8 @@ xp.resource('home', ['currentUser'], {
 xp.stream('tl', 'comment', ['currentUser', 'user']);
 xp.stream('pub-tl', 'comment', []);
 
-<<<<<<< HEAD
-xp.connect('localhost', 27017, 'favespot2_test', function(err) {
-=======
 xp.setKey('sh0ckwave-favesp0t');
-xp.connect('localhost', 27017, 'test', function(err) {
->>>>>>> 6ecb2f042c2a5034b041c0725e552613d1dcbd28
+xp.connect('localhost', 27017, 'favespot2_test', function(err) {
   if(err) console.log('error%j', err);
 
   //xp.test();

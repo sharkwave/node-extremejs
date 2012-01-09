@@ -1,11 +1,12 @@
 'use strict';
+var config = require('./config');
 var xp = require('extremejs');
 var http = require('http');
 
 xp.entity('user', {
   username:'string',
   password:'string',
-  timeline: ['tl', ['currentUser', 'currentUser']],
+  timeline: ['tl', ['currentUser', '_id']],
   favorites:['favorites', ['currentUser', '_id']],
   following:['following', ['currentUser', '_id']],
   follower:['follower', ['currentUser', '_id']],
@@ -15,7 +16,9 @@ xp.entity('user', {
 xp.entity('spot', {
   name:'string',
   save:['save', ['currentUser', '_id']],
-  comments: ['spot-cmts', ['currentUser', 'currentUser', '_id']]
+  commentsAll: ['spot-cmts-all', ['currentUser', '_id']],
+  commentsFriends: ['spot-cmts-friends', ['currentUser', '_id']],
+  commentsMe: ['spot-cmts-me', ['currentUser', 'currentUser', '_id']]
 });
 
 xp.entity('friend', {
@@ -32,13 +35,6 @@ xp.entity('favorite', {
   hrefSpot: ['s', ['currentUser', 'spot']]
 });
 
-xp.entity('timeline', {
-  user:'user',
-  spot:'spot',
-  type:'string',
-  hrefUser: ['u', ['currentUser', 'user']],
-  hrefSpot: ['s', ['currentUser', 'spot']]
-});
 
 xp.entity('notification', {
   type:'string'
@@ -80,7 +76,22 @@ xp.object('s', 'spot', ['currentUser', '_id']);
 
 xp.object('cmt', 'comment', ['currentUser', '_id']);
 
-xp.stream('spot-cmts', 'comment', ['currentUser', 'user', 'spot']);
+function byFriends(url, urlelem, context, callback) {
+  var cuid = urlelem.currentUser;
+  xp.streamIds('following','to', [cuid, cuid], function(code, ids) {
+    if(code < 300) {
+      ids.push(cuid);
+      callback(code, {'user': {'$in': ids}})
+    }
+    else
+      callback(code, null);
+  });
+
+}
+
+xp.stream('spot-cmts-all', 'comment', ['currentUser', 'spot']);
+xp.stream('spot-cmts-friends', 'comment', ['currentUser', 'spot'], byFriends);
+xp.stream('spot-cmts-me', 'comment', ['currentUser', 'user', 'spot']);
 
 xp.stream('cmt-replys', 'reply', ['currentUser', 'user', 'comment']);
 
@@ -119,58 +130,23 @@ xp.object('save', 'favorite', ['user', 'spot']);
 xp.resource('home', ['currentUser'], {
   me: ['u', ['currentUser', 'currentUser']],
   discover: ['discover', ['currentUser']],
-  timeline: ['tl', ['currentUser', 'currentUser']],
+  timeline: ['fl-tl', ['currentUser']],
   notification: ['notify', ['currentUser', 'currentUser']],
   findFriend: ['find-friend', ['currentUser']]
   
 });
-
 xp.stream('tl', 'comment', ['currentUser', 'user']);
+xp.stream('fl-tl', 'comment', ['currentUser'], byFriends);
 xp.stream('pub-tl', 'comment', []);
 
-xp.setKey('sh0ckwave-favesp0t');
-xp.connect('localhost', 27017, 'favespot2_test', function(err) {
+xp.setKey(config.key);
+xp.connect('localhost', 27017, config.db, function(err) {
   if(err) console.log('error%j', err);
-
-  //xp.test();
-/*
-  for(var i=1; i<=100; i++) {
-    xp.post('/spot-import', {name:'spot' + i}, 
-      function(code, doc){
-        //console.log(code);
-      });
-  }
-*/
-  /*
-  xp.get("/discover/133391bf69ba27cc?first=", function(err,obj){
-    console.log(err);
-    console.log(obj);
-  });
-  */
-  /*
-  xp.put('/save/133391bf69ba27cc/1333a1f4d68b5959', {}, function(code, obj) {
-    console.log(code);
-    console.log(obj);
-
-  });
-  */
-  /*
-  xp.delete('/save/133391bf69ba27cc/1333a1f4d68b5959', function(code) {
-    console.log(code);
-  });
-  */
-  /*
-  xp.post('/login', {username:'user1', password:'12345'}, 
-      function(code, home) {
-        console.log(code);
-        console.log(home);
-      });
-      */
-  process.on('uncaughtException', function (err) {
-    console.log('Caught exception: ' + err.stack);
-  });
-  http.createServer(xp.httpfunc).listen(8080);
-  console.log('listen on 8080');
+  if(! config.debug)
+    process.on('uncaughtException', function (err) {
+      console.log('Caught exception: ' + err.stack);
+    });
+  http.createServer(xp.httpfunc).listen(config.port);
 
 });
 function cb(code, entity) {

@@ -6,33 +6,40 @@ var http = require('http');
 xp.entity('user', {
   username:'string',
   password:'string',
-  timeline: ['tl', ['currentUser', '_id']],
-  favorites:['favorites', ['currentUser', '_id']],
-  following:['following', ['currentUser', '_id']],
-  follower:['follower', ['currentUser', '_id']],
-  follow:['follow', ['currentUser', '_id']]
+
+  timeline: ['tl', ['_id']],
+  favorites:['favorites', ['_id']],
+  todoList:['todo-list', ['_id']],
+  likes: ['user-likes', ['_id']],
+  following:['following', ['_id']],
+  follower:['follower', ['_id']],
+  follow:['follow', ['_id']]
 });
 
 xp.entity('spot', {
   name:'string',
-  save:['save', ['currentUser', '_id']],
-  commentsAll: ['spot-cmts-all', ['currentUser', '_id']],
-  commentsFriends: ['spot-cmts-friends', ['currentUser', '_id']],
-  commentsMe: ['spot-cmts-me', ['currentUser', 'currentUser', '_id']]
+
+  save:['save', ['_id']],
+  todo:['todo-it', ['_id']],
+  favoriteBy:['favorite-by', ['_id']],
+  todoBy:['todo-by', ['_id']],
+  commentsAll: ['spot-cmts-all', ['_id']],
+  commentsFriends: ['spot-cmts-friends', ['_id']],
+  commentsMe: ['spot-cmts-me', ['_id']]
 });
 
 xp.entity('friend', {
   from:'user',
   to:'user',
-  hrefFrom: ['u', ['currentUser', 'from']],
-  hrefTo: ['u', ['currentUser', 'to']]
 });
 
 xp.entity('favorite', {
   user:'user',
   spot:'spot',
-  hrefUser: ['u', ['currentUser', 'user']],
-  hrefSpot: ['s', ['currentUser', 'spot']]
+});
+xp.entity('todo', {
+  user:'user',
+  spot:'spot',
 });
 
 
@@ -44,17 +51,22 @@ xp.entity('comment', {
   user:'user',
   spot:'spot',
   message:'string',
-  hrefUser: ['u', ['currentUser', 'user']],
-  hrefSpot: ['s', ['currentUser', 'spot']],
-  replys: ['cmt-replys', ['currentUser', 'currentUser', '_id']]
+
+  likes: ['cmt-likes', ['_id']],
+  like: ['like-it', ['_id']],
+  replys: ['cmt-replys', ['_id']],
+  replysMe: ['cmt-replys-me', ['_id']]
 });
 
 xp.entity('reply', {
   user:'user',
   comment:'comment',
   message:'string',
-  hrefComment:['cmt', ['currentUser', 'comment']],
-  hrefUser: ['u', ['currentUser', 'user']]
+});
+
+xp.entity('like', {
+  user:'user',
+  comment:'comment',
 });
 
 xp.resource('start', [], {
@@ -70,30 +82,20 @@ xp.stream('spot-import', 'spot', []);
 
 xp.object('user-by-name', 'user', ['username']);
 
-xp.object('u', 'user', ['currentUser', '_id']);
+xp.object('me', 'user', [], {'_id':'currentUser'});
 
-xp.object('s', 'spot', ['currentUser', '_id']);
 
-xp.object('cmt', 'comment', ['currentUser', '_id']);
 
-function byFriends(url, urlelem, context, callback) {
-  var cuid = urlelem.currentUser;
-  xp.streamIds('following','to', [cuid, cuid], function(code, ids) {
-    if(code < 300) {
-      ids.push(cuid);
-      callback(code, {'user': {'$in': ids}})
-    }
-    else
-      callback(code, null);
-  });
+xp.stream('spot-cmts-all', 'comment', ['spot']);
+xp.stream('spot-cmts-friends', 'comment', ['spot'], byFriends);
+xp.stream('spot-cmts-me', 'comment', ['spot'], {'user':'currentUser'});
 
-}
+xp.stream('cmt-replys', 'reply', ['comment']);
+xp.stream('cmt-replys-me', 'reply', ['comment'], {'user':'currentUser'});
 
-xp.stream('spot-cmts-all', 'comment', ['currentUser', 'spot']);
-xp.stream('spot-cmts-friends', 'comment', ['currentUser', 'spot'], byFriends);
-xp.stream('spot-cmts-me', 'comment', ['currentUser', 'user', 'spot']);
-
-xp.stream('cmt-replys', 'reply', ['currentUser', 'user', 'comment']);
+xp.stream('cmt-likes', 'like', ['comment']);
+xp.stream('user-likes', 'like', ['user']);
+xp.object('like-it', 'like', ['comment'], {'user':'currentUser'});
 
 xp.resource('login', [], function(req, callback) {
   var userinfo = req.entity;
@@ -105,43 +107,66 @@ xp.resource('login', [], function(req, callback) {
         });
       }
       else
-        callback(403);
+        callback(401);
     }
     else 
-      callback(403);
+      callback(401);
   });
 });
 
-xp.stream('find-friend', 'user', ['currentUser']);
+xp.stream('find-friend', 'user', []);
 
-xp.stream('discover', 'spot', ['currentUser']);
-xp.stream('discover-nologin', 'spot', ['currentUser']);
+xp.stream('discover', 'spot', []);
+xp.stream('discover-nologin', 'spot', []);
 
-xp.stream('following', 'friend', ['currentUser', 'from']);
+xp.stream('following', 'friend', ['from']);
 
-xp.stream('follower', 'friend', ['currentUser', 'to']);
+xp.stream('follower', 'friend', ['to']);
 
-xp.object('follow', 'friend', ['from', 'to']);
+xp.object('follow', 'friend', ['to'],{'from':'currentUser'});
 
-xp.stream('favorites', 'favorite', ['currentUser', 'user']);
+xp.stream('favorites', 'favorite', ['user']);
+xp.stream('favorite-by', 'favorite', ['spot']);
+xp.object('save', 'favorite', ['spot'], {'user':'currentUser'});
 
-xp.object('save', 'favorite', ['user', 'spot']);
+xp.stream('todo-list', 'todo', ['user']);
+xp.stream('todo-by', 'todo', ['spot']);
+xp.object('todo-it', 'todo', ['spot'], {'user':'currentUser'});
 
-xp.resource('home', ['currentUser'], {
-  me: ['u', ['currentUser', 'currentUser']],
-  discover: ['discover', ['currentUser']],
-  timeline: ['fl-tl', ['currentUser']],
-  notification: ['notify', ['currentUser', 'currentUser']],
-  findFriend: ['find-friend', ['currentUser']]
+xp.resource('home', [], {
+  me: ['me', []],
+  discover: ['discover', []],
+  timeline: ['fl-tl', []],
+  findFriend: ['find-friend', []]
   
 });
-xp.stream('tl', 'comment', ['currentUser', 'user']);
-xp.stream('fl-tl', 'comment', ['currentUser'], byFriends);
+xp.stream('tl', 'comment', ['user']);
+xp.stream('fl-tl', 'comment', [], byFriends);
 xp.stream('pub-tl', 'comment', []);
+
+function byFriends(url, urlelem, context, callback) {
+  var cuid = context.currentUser;
+  if(cuid == null) {
+    callback(401, null);
+    return;
+  }
+  xp.getStream('following','to', [cuid,cuid], context, function(code, ids) {
+    if(code < 300) {
+      ids.push(cuid);
+      callback(code, {'user': {'$in': ids}})
+    }
+    else
+      callback(code, null);
+  });
+
+}
 
 xp.setKey(config.key);
 xp.connect('localhost', 27017, config.db, function(err) {
-  if(err) console.log('error%j', err);
+  if(err) {
+    console.log('error%j', err);
+    return;
+  }
   if(! config.debug)
     process.on('uncaughtException', function (err) {
       console.log('Caught exception: ' + err.stack);
@@ -149,20 +174,3 @@ xp.connect('localhost', 27017, config.db, function(err) {
   http.createServer(xp.httpfunc).listen(config.port);
 
 });
-function cb(code, entity) {
-  console.log('code: ' + code);
-  console.log(entity);
-}
-exports.post = function(url, entity) {
-  xp.post(url, entity, cb);
-}
-
-exports.put = function(url, entity) {
-  xp.put(url, entity, cb);
-}
-exports.delete = function(url) {
-  xp.delete(url, cb);
-}
-exports.get = function(url) {
-  xp.get(url, cb);
-}

@@ -52,6 +52,7 @@ xp.entity('comment', {
   spot:'spot',
   message:'string',
 
+  edit: ['cmt-edit', ['_id']],
   likes: ['cmt-likes', ['_id']],
   like: ['like-it', ['_id']],
   replys: ['cmt-replys', ['_id']],
@@ -62,6 +63,7 @@ xp.entity('reply', {
   user:'user',
   comment:'comment',
   message:'string',
+  edit: ['reply-edit', ['_id']],
 });
 
 xp.entity('like', {
@@ -89,9 +91,12 @@ xp.object('me', 'user', [], {'_id':'currentUser'});
 xp.stream('spot-cmts-all', 'comment', ['spot']);
 xp.stream('spot-cmts-friends', 'comment', ['spot'], byFriends);
 xp.stream('spot-cmts-me', 'comment', ['spot'], {'user':'currentUser'});
+xp.edit('cmt-edit', 'comment', ['_id'], {'user':'currentUser'});
 
 xp.stream('cmt-replys', 'reply', ['comment']);
 xp.stream('cmt-replys-me', 'reply', ['comment'], {'user':'currentUser'});
+xp.edit('reply-edit', 'reply', ['_id'], {'user':'currentUser'});
+
 
 xp.stream('cmt-likes', 'like', ['comment']);
 xp.stream('user-likes', 'like', ['user']);

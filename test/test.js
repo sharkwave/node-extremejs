@@ -1,7 +1,9 @@
 'use strict';
-var config = require('./config');
-var xp = require('extremejs');
-var http = require('http');
+var config = require('./config'),
+	xp = require('extremejs'),
+	http = require('http'),
+	url = require('url'),
+	OAuth = require('node-oauth').OAuth; 
 
 xp.entity('user', {
   username:'string',
@@ -75,7 +77,8 @@ xp.resource('start', [], {
   signup: ['signup', []],
   login: ['login', []],
   discover: ['discover-nologin', []],
-  publicTimeline: ['pub-tl', []]
+  publicTimeline: ['pub-tl', []],
+  search: ['search', []]
 });
 
 xp.stream('signup', 'user', []);
@@ -117,6 +120,26 @@ xp.resource('login', [], function(req, callback) {
     else 
       callback(401);
   });
+});
+
+var factual = new OAuth(null, null, 
+		config.factual_key, config.factual_secret,
+		'1.0', null,'HMAC-SHA1');
+
+xp.resource('search', [], function(req, callback) {
+  var qry = url.parse(req.url, true).query;
+  factual.get(
+	"http://api.v3.factual.com/t/global?q="+
+		encodeURIComponent(qry.q)+"&geo={%22$circle%22:{%22$center%22:["+
+		qry.lat+","+
+		qry.long+"],%22$meters%22:"+
+		qry.meters+"}}",
+    null,
+    null,
+    function (err, data, result) {
+	  callback(200, eval("("+data+")"));
+    }
+  );
 });
 
 xp.stream('find-friend', 'user', []);

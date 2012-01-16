@@ -128,18 +128,27 @@ var factual = new OAuth(null, null,
 
 xp.resource('search', [], function(req, callback) {
   var qry = url.parse(req.url, true).query;
-  factual.get(
-	"http://api.v3.factual.com/t/global?q="+
-		encodeURIComponent(qry.q)+"&geo={%22$circle%22:{%22$center%22:["+
-		qry.lat+","+
-		qry.long+"],%22$meters%22:"+
-		qry.meters+"}}",
-    null,
-    null,
-    function (err, data, result) {
-	  callback(200, eval("("+data+")"));
-    }
-  );
+  if(qry.q != null) {
+	  var qry_url = config.factual_url + "/t/global?q="+
+		encodeURIComponent(qry.q);
+	  if(qry.lat != null && qry.long != null) {
+		  if(qry.meters == null)
+			  qry.meters = 5000;  // default
+		  qry_url += "&geo={%22$circle%22:{%22$center%22:["+
+			qry.lat+","+
+			qry.long+"],%22$meters%22:"+
+			qry.meters+"}}";
+	  }
+	  factual.get(
+		qry_url,
+	    null,
+	    null,
+	    function (err, data, result) {
+		  callback(200, eval("("+data+")"));
+	    }
+	  );
+  } else
+	  callback(401);
 });
 
 xp.stream('find-friend', 'user', []);

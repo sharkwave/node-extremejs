@@ -3,7 +3,8 @@ var config = require('./config'),
 	xp = require('extremejs'),
 	http = require('http'),
 	url = require('url'),
-	OAuth = require('node-oauth').OAuth; 
+	OAuth = require('node-oauth'); 
+
 
 xp.entity('user', {
   username:'string',
@@ -45,8 +46,21 @@ xp.entity('todo', {
 });
 
 
+xp.entity('apnToken', {
+  user:'user',
+  base64Token:'string'
+});
+
 xp.entity('notification', {
-  type:'string'
+  type:'string', //follow like reply
+  user:'user',
+  from:'user',
+  message:'string optional',
+  relatedUser:'user optional',
+  relatedSpot:'spot optional',
+  relatedComment:'comment optional',
+  relatedReply:'reply optional',
+  apnToken: ['apn-token-user', ['user']]
 });
 
 xp.entity('comment', {
@@ -94,16 +108,87 @@ xp.object('me', 'user', [], {'_id':'currentUser'});
 xp.stream('spot-cmts-all', 'comment', ['spot']);
 xp.stream('spot-cmts-friends', 'comment', ['spot'], byFriends);
 xp.stream('spot-cmts-me', 'comment', ['spot'], {'user':'currentUser'});
+
+xp.after('spot-cmts-me', function(req, ctx, input, status, output, next, cb) {
+  if(req.method=='POST' && status < 300) {
+    var elems = xp.urlelement(req.url);
+    var saveurl = xp.url('save', [elems.spot], req.url);
+    xp.put(saveurl, {}, function(code, entity) {
+      if(code < 300 || code == 409)
+        next();
+      else
+        cb(code, entity);
+    }, ctx);
+  }
+  else
+    next();
+});
+
 xp.edit('cmt-edit', 'comment', ['_id'], {'user':'currentUser'});
 
 xp.stream('cmt-replys', 'reply', ['comment']);
 xp.stream('cmt-replys-me', 'reply', ['comment'], {'user':'currentUser'});
+
+function sendNotification(req, notify, next, callback) {
+  var notifyurl = xp.url('notify-queue', [], req.url);
+  xp.post(notifyurl, notify, function(code, entity) {
+    if(code < 300) {
+      console.log('notify: %j', entity);
+      next();
+    }
+    else
+      callback(code, entity);
+  });
+}
+xp.after('cmt-replys-me', function(req, ctx, input, status, output, next, cb) {
+  if(req.method=='POST' && status < 300) {
+    xp.get(output.comment, function(code, entity) {
+      if(code >= 300) {
+        cb(code, entity);
+        return;
+      }
+      var n = {
+        type:'reply',
+        user:entity.user,
+        from:output.user,
+        message:output.message,
+        relatedComment:output.comment,
+        relatedReply:output._self
+      };
+      sendNotification(req, n, next, cb);
+    });
+  }
+  else
+    next();
+});
+
 xp.edit('reply-edit', 'reply', ['_id'], {'user':'currentUser'});
 
 
 xp.stream('cmt-likes', 'like', ['comment']);
 xp.stream('user-likes', 'like', ['user']);
 xp.object('like-it', 'like', ['comment'], {'user':'currentUser'});
+xp.after('like-it', function(req, ctx, input, status, output, next, cb) {
+  if(req.method=='PUT' && status < 300) {
+    xp.get(output.comment, function(code, entity) {
+      if(code >= 300) {
+        cb(code, entity);
+        return;
+      }
+      var n = {
+        type:'like',
+        user:entity.user,
+        from:output.user,
+        message:'喜欢您的收藏',
+        relatedComment:output.comment,
+        relatedReply:output._id
+      };
+      sendNotification(req, n, next, cb);
+    });
+  }
+  else
+    next();
+});
 
 xp.resource('login', [], function(req, callback) {
   var userinfo = req.entity;
@@ -123,7 +208,6 @@ xp.resource('login', [], function(req, callback) {
 });
 
 var factual = new OAuth(null, null, 
-		config.factual_key, config.factual_secret,
 		'1.0', null,'HMAC-SHA1');
 
 xp.resource('search', [], function(req, callback) {
@@ -154,6 +238,7 @@ xp.resource('search', [], function(req, callback) {
 xp.stream('find-friend', 'user', []);
 
 xp.stream('discover', 'spot', []);
+
 xp.stream('discover-nologin', 'spot', []);
 
 xp.stream('following', 'friend', ['from']);
@@ -161,6 +246,19 @@ xp.stream('following', 'friend', ['from']);
 xp.stream('follower', 'friend', ['to']);
 
 xp.object('follow', 'friend', ['to'],{'from':'currentUser'});
+xp.after('follow', function(req, ctx, input, status, output, next, cb) {
+  if(req.method=='PUT' && status < 300) {
+    var n = {
+      type:'follow',
+      user:output.to,
+      from:output.from,
+      relatedUser:output.from,
+    };
+    sendNotification(req, n, next, cb);
+  }
+  else
+    next();
+});
 
 xp.stream('favorites', 'favorite', ['user']);
 xp.stream('favorite-by', 'favorite', ['spot']);
@@ -174,12 +272,21 @@ xp.resource('home', [], {
   me: ['me', []],
   discover: ['discover', []],
   timeline: ['fl-tl', []],
-  findFriend: ['find-friend', []]
+  findFriend: ['find-friend', []],
+  notification: ['notify', []],
+  apnToken:['apn-token', {}]
   
 });
 xp.stream('tl', 'comment', ['user']);
 xp.stream('fl-tl', 'comment', [], byFriends);
 xp.stream('pub-tl', 'comment', []);
+
+xp.stream('notify', 'notification',[], {'user':'currentUser'});
+xp.stream('notify-queue', 'notification', []);
+
+xp.stream('apn-token', 'apnToken', [], {'user':'currentUser'});
+xp.object('base64-token', 'apnToken', ['base64Token']);
+xp.stream('apn-token-user', 'apnToken', ['user']);
 
 function byFriends(url, urlelem, context, callback) {
   var cuid = context.currentUser;

@@ -3,7 +3,7 @@ var config = require('./config'),
 	xp = require('extremejs'),
 	http = require('http'),
 	url = require('url'),
-	OAuth = require('node-oauth'); 
+	OAuth = require('node-oauth').OAuth || require('node-oauth'); 
 
 
 xp.entity('user', {
@@ -208,6 +208,7 @@ xp.resource('login', [], function(req, callback) {
 });
 
 var factual = new OAuth(null, null, 
+                config.factual_key, config.factual_secret,
 		'1.0', null,'HMAC-SHA1');
 
 xp.resource('search', [], function(req, callback) {

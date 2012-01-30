@@ -9,6 +9,15 @@ var config = require('./config'),
 xp.entity('user', {
   username:'string',
   password:'string',
+  category:'string',
+  logo:'object optional',
+  tel:'string optional',
+  bio:'string optional',
+  blog:'string optional',
+  email:'string optional',
+  language:'string optional',
+  timezone:'string optional',
+  location:'string optional',
 
   timeline: ['tl', ['_id']],
   favorites:['favorites', ['_id']],
@@ -19,8 +28,25 @@ xp.entity('user', {
   follow:['follow', ['_id']]
 });
 
+xp.entity('setting', {
+  user:'user',
+  notifyFollow:'boolean',
+  notifyReply:'boolean',
+  //notifyFave:'boolean',
+  shareFave:'boolean',
+  shareReply:'boolean'
+});
+
 xp.entity('spot', {
   name:'string',
+  address:'string',
+  location:'geo',
+  source:'string',
+  city:'string',
+  district:'string',
+  category:'string',
+  verified:'boolean',
+
 
   save:['save', ['_id']],
   todo:['todo-it', ['_id']],
@@ -39,6 +65,7 @@ xp.entity('friend', {
 xp.entity('favorite', {
   user:'user',
   spot:'spot',
+  source:'user optional',
 });
 xp.entity('todo', {
   user:'user',
@@ -97,6 +124,12 @@ xp.resource('start', [], {
 
 xp.stream('signup', 'user', []);
 
+//hook(req, context, input, next, callback);
+xp.before('signup', function(req, context, input, next, callback) {
+  input.category = 'normal';
+  next();
+});
+
 xp.stream('spot-import', 'spot', []);
 
 xp.object('user-by-name', 'user', ['username']);
@@ -104,7 +137,7 @@ xp.object('user-by-name', 'user', ['username']);
 xp.object('me', 'user', [], {'_id':'currentUser'});
 
 
-
+xp.object('spot-by-na', 'spot', ['name', 'address']);
 xp.stream('spot-cmts-all', 'comment', ['spot']);
 xp.stream('spot-cmts-friends', 'comment', ['spot'], byFriends);
 xp.stream('spot-cmts-me', 'comment', ['spot'], {'user':'currentUser'});
@@ -305,6 +338,47 @@ function byFriends(url, urlelem, context, callback) {
   });
 
 }
+
+xp.stream('tmp-sync-user', 'user', []);
+
+xp.stream('sync-fave', 'favorite', []);
+xp.resource('tmp-sync-fave', [], function(req, callback) {
+  if(req.method!='post') {
+    callback(405);
+    return;
+  }
+  var entity = req.entity;
+  if(entity.username == null || typeof(entity.spot) != 'object') {
+    callback(400);
+    return;
+  }
+  xp.get(xp.url('user-by-name',[entity.username]), function(code, user) {
+    if(code>=400) {
+      callback(400, {error:'can not find user:' + entity.username, code:code});
+      return;
+    }
+    console.log('%j', entity.spot);
+    xp.post('/discover', entity.spot, function(code, spot) {
+      if(code >= 400 && code != 409) {
+        callback(400, {error:'can not save spot', code:code});
+        return;
+      }
+      xp.get(xp.url('spot-by-na', [entity.spot.name, entity.spot.address]), 
+        function(code, spot) {
+          if(code >= 400) {
+            callback(400, 
+              {error:'can not find spot:' + entity.spot.name, code:code});
+            return;
+          }
+          var fave = {
+            user:'/user/' + user._id,
+            spot:'/spot/' + spot._id
+          };
+          xp.post('/sync-fave', fave, callback);
+        });
+    });
+  });
+});
 
 xp.setKey(config.key);
 xp.connect('localhost', 27017, config.db, function(err) {

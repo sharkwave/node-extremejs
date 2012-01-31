@@ -9,6 +9,7 @@ var config = require('./config'),
 xp.entity('user', {
   username:'string',
   password:'string',
+  key:'string optional',
   category:'string',
   logo:'object optional',
   tel:'string optional',

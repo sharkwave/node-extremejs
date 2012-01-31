@@ -3,8 +3,27 @@ var config = require('./config'),
 	xp = require('extremejs'),
 	http = require('http'),
 	url = require('url'),
-	OAuth = require('node-oauth').OAuth || require('node-oauth'); 
+	OAuth = require('node-oauth').OAuth || require('node-oauth'),
+        gt = require('gettext'); 
 
+function _(req, msgid) {
+  var al = req.headers['accept-language'];
+  if(al) {
+    console.log('accept-language: %s', al);
+    gt.setlocale('LC_ALL', '');
+    var def = gt.gettext(msgid);
+    var ls = al.split(/\s*,\s*/).map(
+        function(i) { return i.split(/\s*;\s*/)[0].toLowerCase(); });
+    for(var i in ls) {
+      gt.setlocale('LC_ALL', ls[i]);
+      var text = gt.gettext(msgid);
+      if(text != def) return text;
+    }
+    return def;
+  }
+  gt.setlocale('LC_ALL', '');
+  return gt.gettext(msgid);
+}
 
 xp.entity('user', {
   username:'string',
@@ -67,6 +86,7 @@ xp.entity('favorite', {
   user:'user',
   spot:'spot',
   source:'user optional',
+  hidden:'boolean'
 });
 xp.entity('todo', {
   user:'user',
@@ -125,10 +145,18 @@ xp.resource('start', [], {
 
 xp.stream('signup', 'user', []);
 
-//hook(req, context, input, next, callback);
 xp.before('signup', function(req, context, input, next, callback) {
   input.category = 'normal';
   next();
+});
+
+xp.after('signup', function(req, ctx, input, status, output, next, cb) {
+  if(status != 409) {
+    next();
+    return;
+  }
+  cb(409, {error:'username_exists', alertMsg:_(req, 'username-exists')});
+
 });
 
 xp.stream('spot-import', 'spot', []);
@@ -392,5 +420,6 @@ xp.connect('localhost', 27017, config.db, function(err) {
       console.log('Caught exception: ' + err.stack);
     });
   http.createServer(xp.httpfunc).listen(config.port);
+  gt.loadLocaleDirectory(__dirname + '/locale', function() {});
 
 });

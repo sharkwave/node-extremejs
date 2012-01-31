@@ -4,7 +4,14 @@ var config = require('./config'),
 	http = require('http'),
 	url = require('url'),
 	OAuth = require('node-oauth').OAuth || require('node-oauth'),
-        gt = require('gettext'); 
+        gt = require('gettext'), 
+        crypto = require('crypto');
+
+function md5(input) {
+    var md5sum = crypto.createHash('md5');
+      md5sum.update(input);
+        return md5sum.digest('hex');
+}
 
 function _(req, msgid) {
   var al = req.headers['accept-language'];
@@ -256,7 +263,9 @@ xp.resource('login', [], function(req, callback) {
   var userinfo = req.entity;
   xp.get(xp.url('user-by-name',[userinfo.username]), function(code, obj) {
     if(code==200) {
-      if(userinfo.password==obj.password) {
+      var key = obj.key ? obj.key : "";
+      var m = md5(userinfo.password + key);
+      if(m==obj.password) {
         xp.get(xp.url('home', [obj._id], req.url), function(code, home) {
           callback(200, home, {currentUser:obj._id, _token:Math.random()});
         });

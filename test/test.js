@@ -86,7 +86,7 @@ xp.entity('favorite', {
   user:'user',
   spot:'spot',
   source:'user optional',
-  hidden:'boolean'
+  hidden:'boolean optional'
 });
 xp.entity('todo', {
   user:'user',

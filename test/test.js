@@ -481,6 +481,30 @@ xp.resource('tmp-sync-friend', [], function(req, callback) {
     });
   });
 });
+xp.stream('sync-reply', 'reply', []);
+xp.resource('tmp-sync-reply', [], function(req, callback) {
+  var reply = req.entity;
+  xp.get(xp.url('tmp-fc-by-fid', [reply.key]), function(code, fc) {
+    if(code >= 400) {
+      callback(code, {error:'can not find faveId:' + reply.key});
+      return;
+    }
+    xp.get(xp.url('user-by-name',[reply.username]), function(code, user) {
+      if(code>=400) {
+        callback(code, {error:'can not find user:'+reply.username});
+        return;
+      }
+      var r = {
+        user:'/user/' + user._id,
+        comment:'/comment/' + fc.cmtId,
+        message:reply.message,
+        _rawCreated:reply._rawCreated,
+        _rawModified:reply._rawModified
+      };
+      xp.post('/sync-reply', r, callback);
+    });
+  });
+});
 
 xp.setKey(config.key);
 xp.connect('localhost', 27017, config.db, function(err) {

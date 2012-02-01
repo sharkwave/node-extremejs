@@ -421,7 +421,9 @@ xp.resource('tmp-sync-fave', [], function(req, callback) {
             user:'/user/' + user._id,
             spot:'/spot/' + spot._id,
             tags:entity.fave.tags,
-            hidden:entity.fave.hidden
+            hidden:entity.fave.hidden,
+            _rawCreated:entity.fave._rawCreated,
+            _rawModified:entity.fave._rawModified
           };
           xp.post('/sync-fave', fave, function(code, fave) {
             if(code < 400 && ! entity.fave.hidden) {
@@ -430,7 +432,9 @@ xp.resource('tmp-sync-fave', [], function(req, callback) {
                 spot:'/spot/' + spot._id,
                 image:entity.comment.image,
                 message:entity.comment.message,
-                device:entity.comment.device
+                device:entity.comment.device,
+                _rawCreated:entity.comment._rawCreated,
+                _rawModified:entity.comment._rawModified
               };
               xp.post('/sync-cmt', cmt, function(cmtcode, cmt) {
                 callback(cmtcode, {fave:fave, comment:cmt});
@@ -458,7 +462,9 @@ xp.resource('tmp-sync-friend', [], function(req, callback) {
       }
       var f = {
         from: '/user/' + from._id,
-        to: '/user/' + to._id
+        to: '/user/' + to._id,
+        _rawCreated:req.entity._rawCreated,
+        _rawModified:req.entity._rawModified
       };
       xp.post('/sync-friend', f, callback);
     });

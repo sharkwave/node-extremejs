@@ -442,8 +442,27 @@ xp.resource('tmp-sync-fave', [], function(req, callback) {
     });
   });
 });
-
+xp.stream('sync-friend', 'friend', []);
 xp.resource('tmp-sync-friend', [], function(req, callback) {
+  var from = req.entity.from;
+  var to = req.entity.to;
+  xp.get(xp.url('user-by-name',[from]), function(code, from) {
+    if(code >= 400) {
+      callback(code, {error: from + " not found"});
+      return;
+    }
+    xp.get(xp.url('user-by-name',[to]), function(code, to) {
+      if(code >= 400) {
+        callback(code, {error: to + " not found"});
+        return;
+      }
+      var f = {
+        from: '/user/' + from._id,
+        to: '/user/' + to._id
+      };
+      xp.post('/sync-friend', f, callback);
+    });
+  });
 });
 
 xp.setKey(config.key);

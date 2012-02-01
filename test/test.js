@@ -93,7 +93,6 @@ xp.entity('favorite', {
   user:'user',
   spot:'spot',
   tags:'set',
-  source:'user optional',
   hidden:'boolean optional'
 });
 xp.entity('todo', {
@@ -122,6 +121,8 @@ xp.entity('notification', {
 xp.entity('comment', {
   user:'user',
   spot:'spot',
+  source:'comment optional',
+  device:'string optional',
   image:'object optional',
   message:'string optional',
 
@@ -428,7 +429,8 @@ xp.resource('tmp-sync-fave', [], function(req, callback) {
                 user:'/user/' + user._id,
                 spot:'/spot/' + spot._id,
                 image:entity.comment.image,
-                message:entity.comment.message
+                message:entity.comment.message,
+                device:entity.comment.device
               };
               xp.post('/sync-cmt', cmt, function(cmtcode, cmt) {
                 callback(cmtcode, {fave:fave, comment:cmt});
@@ -439,6 +441,9 @@ xp.resource('tmp-sync-fave', [], function(req, callback) {
         });
     });
   });
+});
+
+xp.resource('tmp-sync-friend', [], function(req, callback) {
 });
 
 xp.setKey(config.key);

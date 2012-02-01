@@ -92,6 +92,7 @@ xp.entity('friend', {
 xp.entity('favorite', {
   user:'user',
   spot:'spot',
+  tags:'set',
   source:'user optional',
   hidden:'boolean optional'
 });
@@ -121,7 +122,8 @@ xp.entity('notification', {
 xp.entity('comment', {
   user:'user',
   spot:'spot',
-  message:'string',
+  image:'object optional',
+  message:'string optional',
 
   edit: ['cmt-edit', ['_id']],
   likes: ['cmt-likes', ['_id']],
@@ -386,6 +388,7 @@ function byFriends(url, urlelem, context, callback) {
 xp.stream('tmp-sync-user', 'user', []);
 
 xp.stream('sync-fave', 'favorite', []);
+xp.stream('sync-cmt', 'comment', []);
 xp.resource('tmp-sync-fave', [], function(req, callback) {
   if(req.method!='post') {
     callback(405);
@@ -401,7 +404,6 @@ xp.resource('tmp-sync-fave', [], function(req, callback) {
       callback(400, {error:'can not find user:' + entity.username, code:code});
       return;
     }
-    console.log('%j', entity.spot);
     xp.post('/discover', entity.spot, function(code, spot) {
       if(code >= 400 && code != 409) {
         callback(400, {error:'can not save spot', code:code});
@@ -416,9 +418,24 @@ xp.resource('tmp-sync-fave', [], function(req, callback) {
           }
           var fave = {
             user:'/user/' + user._id,
-            spot:'/spot/' + spot._id
+            spot:'/spot/' + spot._id,
+            tags:entity.fave.tags,
+            hidden:entity.fave.hidden
           };
-          xp.post('/sync-fave', fave, callback);
+          xp.post('/sync-fave', fave, function(code, fave) {
+            if(code < 400 && ! entity.fave.hidden) {
+              var cmt = {
+                user:'/user/' + user._id,
+                spot:'/spot/' + spot._id,
+                image:entity.comment.image,
+                message:entity.comment.message
+              };
+              xp.post('/sync-cmt', cmt, function(cmtcode, cmt) {
+                callback(cmtcode, {fave:fave, comment:cmt});
+              });
+            }
+            else callback(code, fave);
+          });
         });
     });
   });

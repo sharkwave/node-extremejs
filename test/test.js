@@ -385,7 +385,12 @@ function byFriends(url, urlelem, context, callback) {
   });
 
 }
-
+xp.entity('tmp_faveid_to_cmtid', {
+  faveId:'string',
+  cmtId:'string'
+});
+xp.object('tmp-fc-by-fid', 'tmp_faveid_to_cmtid', ['faveId']);
+xp.object('tmp-fc-by-fidcid', 'tmp_faveid_to_cmtid', ['faveId', 'cmtId']);
 xp.stream('tmp-sync-user', 'user', []);
 
 xp.stream('sync-fave', 'favorite', []);
@@ -438,6 +443,12 @@ xp.resource('tmp-sync-fave', [], function(req, callback) {
               };
               xp.post('/sync-cmt', cmt, function(cmtcode, cmt) {
                 callback(cmtcode, {fave:fave, comment:cmt});
+                if(cmtcode < 400) 
+                  xp.put(xp.url('tmp-fc-by-fidcid',[entity.fave.key, cmt._id]),
+                      {},
+                      function(code, fidcid){
+                      });
+
               });
             }
             else callback(code, fave);

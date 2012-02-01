@@ -156,7 +156,8 @@ xp.resource('start', [], {
 xp.stream('signup', 'user', []);
 
 xp.before('signup', function(req, context, input, next, callback) {
-  if(req.method!='post') {
+  console.log(req.method);
+  if(req.method!='POST') {
     callback(405);
     return;
   }

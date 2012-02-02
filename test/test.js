@@ -390,6 +390,10 @@ xp.entity('tmp_faveid_to_cmtid', {
   faveId:'string',
   cmtId:'string'
 });
+xp.entity('tmp_replyid', {
+  replyId:'string'
+});
+xp.object('tmp-replyid', 'tmp_replyid', ['replyId']);
 xp.object('tmp-fc-by-fid', 'tmp_faveid_to_cmtid', ['faveId']);
 xp.object('tmp-fc-by-fidcid', 'tmp_faveid_to_cmtid', ['faveId', 'cmtId']);
 xp.stream('tmp-sync-user', 'user', []);
@@ -495,14 +499,20 @@ xp.resource('tmp-sync-reply', [], function(req, callback) {
         callback(code, {error:'can not find user:'+reply.username});
         return;
       }
-      var r = {
-        user:'/user/' + user._id,
-        comment:'/comment/' + fc.cmtId,
-        message:reply.message,
-        _rawCreated:reply._rawCreated,
-        _rawModified:reply._rawModified
-      };
-      xp.post('/sync-reply', r, callback);
+      xp.put(xp.url('tmp-replyid', [reply.key2]), {}, function(code, rid) {
+        if(code >= 400) {
+          callback(code, {reply:reply});
+          return;
+        }
+        var r = {
+          user:'/user/' + user._id,
+          comment:'/comment/' + fc.cmtId,
+          message:reply.message,
+          _rawCreated:reply._rawCreated,
+          _rawModified:reply._rawModified
+        };
+        xp.post('/sync-reply', r, callback);
+      });
     });
   });
 });

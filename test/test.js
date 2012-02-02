@@ -73,7 +73,7 @@ xp.entity('spot', {
   district:'string',
   category:'string',
   verified:'boolean',
-  key:'string optional'
+  key:'string optional',
 
 
   save:['save', ['_id']],

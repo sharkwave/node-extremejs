@@ -386,6 +386,7 @@ function byFriends(url, urlelem, context, callback) {
   });
 
 }
+/*---------------------begin of SYNC from 1.0---------------------*/
 xp.entity('tmp_faveid_to_cmtid', {
   faveId:'string',
   cmtId:'string'
@@ -516,6 +517,7 @@ xp.resource('tmp-sync-reply', [], function(req, callback) {
     });
   });
 });
+/*---------------------end of SYNC from 1.0---------------------*/
 
 xp.setKey(config.key);
 xp.connect('localhost', 27017, config.db, function(err) {

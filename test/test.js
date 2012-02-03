@@ -394,6 +394,7 @@ xp.resource('home', [], {
   apnToken:['apn-token', {}]
   
 });
+xp.doc('home', '登录成功后API入口');
 xp.stream('tl', 'comment', ['user']);
 xp.doc('tl', 'user 所有 comment');
 xp.stream('fl-tl', 'comment', [], byFriends);
@@ -573,3 +574,4 @@ xp.connect('localhost', 27017, config.db, function(err) {
   gt.loadLocaleDirectory(__dirname + '/locale', function() {});
 
 });
+//xp.genDoc();

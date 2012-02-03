@@ -55,6 +55,8 @@ xp.entity('user', {
   follow:['follow', ['_id']]
 });
 
+xp.doc('user', '用户基本信息');
+
 xp.entity('setting', {
   user:'user',
   notifyFollow:'boolean',
@@ -63,6 +65,8 @@ xp.entity('setting', {
   shareFave:'boolean',
   shareReply:'boolean'
 });
+
+xp.doc('setting', '用户设置');
 
 xp.entity('spot', {
   name:'string',
@@ -85,10 +89,14 @@ xp.entity('spot', {
   commentsMe: ['spot-cmts-me', ['_id']]
 });
 
+xp.doc('spot', '地点信息');
+
 xp.entity('friend', {
   from:'user',
   to:'user',
 });
+
+xp.doc('friend', '关注关系，谁关注谁');
 
 xp.entity('favorite', {
   user:'user',
@@ -96,16 +104,22 @@ xp.entity('favorite', {
   tags:'set',
   hidden:'boolean optional'
 });
+
+xp.doc('favorite', '收藏');
+
 xp.entity('todo', {
   user:'user',
   spot:'spot',
 });
 
+xp.doc('todo', '想去');
 
 xp.entity('apnToken', {
   user:'user',
   base64Token:'string'
 });
+
+xp.doc('apnToken', 'iPhone 的 APN Token, 用于推送消息');
 
 xp.entity('notification', {
   type:'string', //follow like reply
@@ -118,6 +132,8 @@ xp.entity('notification', {
   relatedReply:'reply optional',
   apnToken: ['apn-token-user', ['user']]
 });
+
+xp.doc('notification', '通知，会被push到客户端的信息');
 
 xp.entity('comment', {
   user:'user',
@@ -134,6 +150,8 @@ xp.entity('comment', {
   replysMe: ['cmt-replys-me', ['_id']]
 });
 
+xp.doc('comment', '用户对 spot 的评论，以发图片为主');
+
 xp.entity('reply', {
   user:'user',
   comment:'comment',
@@ -141,10 +159,14 @@ xp.entity('reply', {
   edit: ['reply-edit', ['_id']],
 });
 
+xp.doc('reply', '对 comment 的回复');
+
 xp.entity('like', {
   user:'user',
   comment:'comment',
 });
+
+xp.doc('like', '喜欢');
 
 xp.resource('start', [], {
   signup: ['signup', []],
@@ -153,8 +175,10 @@ xp.resource('start', [], {
   publicTimeline: ['pub-tl', []],
   search: ['search', []]
 });
+xp.doc('start', 'API 入口');
 
 xp.stream('signup', 'user', []);
+xp.doc('signup', '注册新用户');
 
 xp.before('signup', function(req, context, input, next, callback) {
   console.log(req.method);
@@ -177,17 +201,16 @@ xp.after('signup', function(req, ctx, input, status, output, next, cb) {
 
 });
 
-xp.stream('spot-import', 'spot', []);
-
 xp.object('user-by-name', 'user', ['username']);
 
 xp.object('me', 'user', [], {'_id':'currentUser'});
-
-
-xp.object('spot-by-na', 'spot', ['name', 'address']);
+xp.doc('me', '当前登录用户的信息');
 xp.stream('spot-cmts-all', 'comment', ['spot']);
+xp.doc('spot-cmts-all', 'spot 的所有 comment');
 xp.stream('spot-cmts-friends', 'comment', ['spot'], byFriends);
+xp.doc('spot-cmts-friends', 'spot 的当前用户所关注的用户发的 comment');
 xp.stream('spot-cmts-me', 'comment', ['spot'], {'user':'currentUser'});
+xp.doc('spot-cmts-me', '当前用户对 spot 发的 comment');
 
 xp.after('spot-cmts-me', function(req, ctx, input, status, output, next, cb) {
   if(req.method=='POST' && status < 300) {
@@ -205,9 +228,11 @@ xp.after('spot-cmts-me', function(req, ctx, input, status, output, next, cb) {
 });
 
 xp.edit('cmt-edit', 'comment', ['_id'], {'user':'currentUser'});
-
+xp.doc('cmt-edit', '删除 comment');
 xp.stream('cmt-replys', 'reply', ['comment']);
+xp.doc('cmt-replys', 'comment 的所有回复');
 xp.stream('cmt-replys-me', 'reply', ['comment'], {'user':'currentUser'});
+xp.doc('cmt-replys-me', '当前用户对 comment 的所有回复');
 
 function sendNotification(req, notify, next, callback) {
   var notifyurl = xp.url('notify-queue', [], req.url);
@@ -243,11 +268,14 @@ xp.after('cmt-replys-me', function(req, ctx, input, status, output, next, cb) {
 });
 
 xp.edit('reply-edit', 'reply', ['_id'], {'user':'currentUser'});
-
+xp.doc('reply-edit', '删除回复');
 
 xp.stream('cmt-likes', 'like', ['comment']);
+xp.doc('cmt-likes', '谁喜欢过这个 comment');
 xp.stream('user-likes', 'like', ['user']);
+xp.doc('user-likes', 'user 喜欢过哪些 comment');
 xp.object('like-it', 'like', ['comment'], {'user':'currentUser'});
+xp.doc('like-it', '喜欢和取消喜欢操作');
 xp.after('like-it', function(req, ctx, input, status, output, next, cb) {
   if(req.method=='PUT' && status < 300) {
     xp.get(output.comment, function(code, entity) {
@@ -288,7 +316,7 @@ xp.resource('login', [], function(req, callback) {
       callback(401);
   });
 });
-
+xp.doc('login', '登录');
 var factual = new OAuth(null, null, 
                 config.factual_key, config.factual_secret,
 		'1.0', null,'HMAC-SHA1');
@@ -317,18 +345,19 @@ xp.resource('search', [], function(req, callback) {
   } else
 	  callback(401);
 });
-
+xp.doc('搜索 spot');
 xp.stream('find-friend', 'user', []);
-
+xp.doc('find-friend', '查找好友');
 xp.stream('discover', 'spot', []);
-
+xp.doc('discover', '发现 spot');
 xp.stream('discover-nologin', 'spot', []);
-
+xp.doc('discover-nologin', '发现 spot');
 xp.stream('following', 'friend', ['from']);
-
+xp.doc('following', 'user 关注了谁');
 xp.stream('follower', 'friend', ['to']);
-
+xp.doc('follower', 'user 被水关注');
 xp.object('follow', 'friend', ['to'],{'from':'currentUser'});
+xp.doc('follow', '加关注和取消关注操作');
 xp.after('follow', function(req, ctx, input, status, output, next, cb) {
   if(req.method=='PUT' && status < 300) {
     var n = {
@@ -344,12 +373,17 @@ xp.after('follow', function(req, ctx, input, status, output, next, cb) {
 });
 
 xp.stream('favorites', 'favorite', ['user']);
+xp.doc('favorites', 'user 收藏了哪些 spot');
 xp.stream('favorite-by', 'favorite', ['spot']);
+xp.doc('favorite-by', 'spot 被哪些人收藏');
 xp.object('save', 'favorite', ['spot'], {'user':'currentUser'});
-
+xp.doc('save', '收藏和取消收藏操作');
 xp.stream('todo-list', 'todo', ['user']);
+xp.doc('todo-list', 'user 想去哪些 spot');
 xp.stream('todo-by', 'todo', ['spot']);
+xp.doc('todo-by', 'spot 有哪些 user 想去');
 xp.object('todo-it', 'todo', ['spot'], {'user':'currentUser'});
+xp.doc('todo-it', '想去和取消想去操作');
 
 xp.resource('home', [], {
   me: ['me', []],
@@ -360,14 +394,19 @@ xp.resource('home', [], {
   apnToken:['apn-token', {}]
   
 });
+xp.doc('home', '登录成功后API入口');
 xp.stream('tl', 'comment', ['user']);
+xp.doc('tl', 'user 所有 comment');
 xp.stream('fl-tl', 'comment', [], byFriends);
+xp.doc('fl-tl', 'user 自己以及所有关注的 user 的 comment');
 xp.stream('pub-tl', 'comment', []);
+xp.doc('pub-tl', '没有登录时显示的默认 timeline');
 
 xp.stream('notify', 'notification',[], {'user':'currentUser'});
 xp.stream('notify-queue', 'notification', []);
-
+xp.doc('notify', '当前登录 user 的所有通知');
 xp.stream('apn-token', 'apnToken', [], {'user':'currentUser'});
+xp.doc('apn-token', '当前登录 user 的所有 iPhone APN Token');
 xp.object('base64-token', 'apnToken', ['base64Token']);
 xp.stream('apn-token-user', 'apnToken', ['user']);
 
@@ -388,6 +427,7 @@ function byFriends(url, urlelem, context, callback) {
 
 }
 /*---------------------begin of SYNC from 1.0---------------------*/
+xp.object('spot-by-na', 'spot', ['name', 'address']);
 xp.entity('tmp_faveid_to_cmtid', {
   faveId:'string',
   cmtId:'string'
@@ -534,3 +574,4 @@ xp.connect('localhost', 27017, config.db, function(err) {
   gt.loadLocaleDirectory(__dirname + '/locale', function() {});
 
 });
+//xp.genDoc();

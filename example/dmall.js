@@ -7,14 +7,15 @@ var http = require('http');
 xp.entity('user', {
   username: 'string',
   password: 'string',
-  shop: ['my-shop', ['_id']]
+  shop: ['my-shop', ['$_id']],
+  test: ['my-shop', ['hello']]
 });
 
 // shop table
 xp.entity('shop', {
   name:'string',
   owner:'user',
-  'goods': ['goods-for-shop', ['_id']]
+  'goods': ['goods-for-shop', ['$_id']]
 });
 
 // goods table
